@@ -7,94 +7,88 @@
 
 namespace acid
 {
-	void MeshRender::Start()
-	{
-	}
+void MeshRender::Start() {}
 
-	void MeshRender::Update()
-	{
-		auto material = GetParent()->GetComponent<Material>();
+void MeshRender::Update()
+{
+	auto material = GetParent()->GetComponent<Material>();
 
-		if (material == nullptr)
+	if(material == nullptr)
 		{
 			return;
 		}
 
-		// Updates uniforms.
-		material->PushUniforms(m_uniformObject);
-	}
+	// Updates uniforms.
+	material->PushUniforms(m_uniformObject);
+}
 
-	bool MeshRender::CmdRender(const CommandBuffer &commandBuffer, UniformHandler &uniformScene, const Pipeline::Stage &pipelineStage)
-	{
-		// Checks if the mesh is in view.
-		auto rigidbody = GetParent()->GetComponent<Rigidbody>();
+bool MeshRender::CmdRender(const CommandBuffer& commandBuffer, UniformHandler& uniformScene, const Pipeline::Stage& pipelineStage)
+{
+	// Checks if the mesh is in view.
+	auto rigidbody = GetParent()->GetComponent<Rigidbody>();
 
-		if (rigidbody != nullptr)
+	if(rigidbody != nullptr)
 		{
-			if (!rigidbody->InFrustum(Scenes::Get()->GetCamera()->GetViewFrustum()))
-			{
-				return false;
-			}
+			if(!rigidbody->InFrustum(Scenes::Get()->GetCamera()->GetViewFrustum()))
+				{
+					return false;
+				}
 		}
 
-		// Gets required components.
-		auto material = GetParent()->GetComponent<Material>();
-		auto mesh = GetParent()->GetComponent<Mesh>();
+	// Gets required components.
+	auto material = GetParent()->GetComponent<Material>();
+	auto mesh = GetParent()->GetComponent<Mesh>();
 
-		if (material == nullptr || mesh == nullptr)
-		{
-			return false;
-		}
-
-		auto meshModel = mesh->GetModel();
-		auto materialPipeline = material->GetPipelineMaterial();
-
-		if (meshModel == nullptr || materialPipeline->GetStage() != pipelineStage)
+	if(material == nullptr || mesh == nullptr)
 		{
 			return false;
 		}
 
-		// Binds the material pipeline.
-		bool bindSuccess = materialPipeline->BindPipeline(commandBuffer);
+	auto meshModel = mesh->GetModel();
+	auto materialPipeline = material->GetPipelineMaterial();
 
-		if (!bindSuccess)
+	if(meshModel == nullptr || materialPipeline->GetStage() != pipelineStage)
 		{
 			return false;
 		}
 
-		auto &pipeline = *materialPipeline->GetPipeline();
+	// Binds the material pipeline.
+	bool bindSuccess = materialPipeline->BindPipeline(commandBuffer);
 
-		// Updates descriptors.
-		m_descriptorSet.Push("UboScene", uniformScene);
-		m_descriptorSet.Push("UboObject", m_uniformObject);
-		material->PushDescriptors(m_descriptorSet);
-		bool updateSuccess = m_descriptorSet.Update(pipeline);
-
-		if (!updateSuccess)
+	if(!bindSuccess)
 		{
 			return false;
 		}
 
-		// Draws the object.
-		m_descriptorSet.BindDescriptor(commandBuffer, pipeline);
-		return meshModel->CmdRender(commandBuffer);
-	}
+	auto& pipeline = *materialPipeline->GetPipeline();
 
-	void MeshRender::Decode(const Metadata &metadata)
-	{
-	}
+	// Updates descriptors.
+	m_descriptorSet.Push("UboScene", uniformScene);
+	m_descriptorSet.Push("UboObject", m_uniformObject);
+	material->PushDescriptors(m_descriptorSet);
+	bool updateSuccess = m_descriptorSet.Update(pipeline);
 
-	void MeshRender::Encode(Metadata &metadata) const
-	{
-	}
+	if(!updateSuccess)
+		{
+			return false;
+		}
 
-	bool MeshRender::operator<(const MeshRender &other) const
-	{
-		auto camera = Scenes::Get()->GetCamera();
+	// Draws the object.
+	m_descriptorSet.BindDescriptor(commandBuffer, pipeline);
+	return meshModel->CmdRender(commandBuffer);
+}
 
-		float thisDistance2 = (camera->GetPosition() - GetParent()->GetWorldTransform().GetPosition()).LengthSquared();
-		float otherDistance2 = (camera->GetPosition() - other.GetParent()->GetWorldTransform().GetPosition()).LengthSquared();
+void MeshRender::Decode(const Metadata& metadata) {}
 
-		return thisDistance2 > otherDistance2;
-	}
+void MeshRender::Encode(Metadata& metadata) const {}
+
+bool MeshRender::operator<(const MeshRender& other) const
+{
+	auto camera = Scenes::Get()->GetCamera();
+
+	float thisDistance2 = (camera->GetPosition() - GetParent()->GetWorldTransform().GetPosition()).LengthSquared();
+	float otherDistance2 = (camera->GetPosition() - other.GetParent()->GetWorldTransform().GetPosition()).LengthSquared();
+
+	return thisDistance2 > otherDistance2;
+}
 }
